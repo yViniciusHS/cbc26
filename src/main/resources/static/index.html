@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickPass - Jornada Phygital</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #0056b3; }
+        .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn { background-color: #0056b3; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; transition: 0.3s; }
+        .btn:hover { background-color: #004494; }
+        .btn-totem { background-color: #28a745; }
+        .btn-totem:hover { background-color: #218838; }
+        .resultado { margin-top: 15px; padding: 15px; background-color: #e9ecef; border-radius: 5px; font-weight: bold; min-height: 20px; }
+        .qr-container { text-align: center; margin-top: 20px; }
+        #imgQrCode { border: 4px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.2); border-radius: 10px; max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>✈️ Painel de Simulação ClickPass</h1>
+        <p>Orquestração de Fluxo e Self Bag Drop</p>
+    </div>
+
+    <div class="card">
+        <h2>📱 App do Passageiro (Simulação de Grafos)</h2>
+        <p>Selecione onde você está no terminal para calcular a rota até a Plataforma 12:</p>
+        <button class="btn" onclick="calcularRota('ENTRADA')">📍 Estou na Entrada</button>
+        <button class="btn" onclick="calcularRota('PRACA_ALIMENTACAO')">🍔 Estou na Praça de Alimentação</button>
+        <button class="btn" onclick="calcularRota('TOTEM_BAGAGEM')">🎒 Estou no Totem de Bagagem</button>
+
+        <div class="resultado" id="resRota">Aguardando localização...</div>
+    </div>
+
+    <div class="card">
+        <h2>🧳 Totem Self Bag Drop</h2>
+        <p>Gere sua etiqueta autônoma após o reconhecimento facial:</p>
+        <button class="btn btn-totem" onclick="gerarEtiqueta()">🖨️ Imprimir Etiqueta (QR Code)</button>
+
+        <div class="qr-container">
+            <img id="imgQrCode" src="" style="display:none;" alt="QR Code da Bagagem">
+        </div>
+    </div>
+</div>
+
+<script>
+    // Função para testar o Algoritmo de Dijkstra (Fase 3)
+    async function calcularRota(local) {
+        const painel = document.getElementById('resRota');
+        painel.innerText = "Calculando rota...";
+        painel.style.color = "#333";
+
+        try {
+            // Chama a API Java
+            const response = await fetch(`http://localhost:8080/api/passagens/1/tempo-embarque?localizacaoPassageiro=${local}`);
+            if(response.ok) {
+                const texto = await response.text();
+                painel.innerText = texto;
+                // Muda a cor dependendo da camada
+                if(texto.includes("CAMADA 1")) painel.style.color = "#d9534f"; // Vermelho (urgente)
+                else painel.style.color = "#0056b3"; // Azul (ok)
+            } else {
+                painel.innerText = "Erro ao calcular rota. Verifique se o ID 1 existe no banco.";
+            }
+        } catch (error) {
+            painel.innerText = "Erro de conexão com o servidor Java.";
+        }
+    }
+
+    // Função para testar a geração do QR Code nativo (Fase 3)
+    async function gerarEtiqueta() {
+        try {
+            // Chama a API Java
+            const response = await fetch('http://localhost:8080/api/bagagens/gerar-etiqueta/1');
+            if(response.ok) {
+                const base64 = await response.text();
+                const img = document.getElementById('imgQrCode');
+                // Injeta o Base64 direto na tag de imagem
+                img.src = "data:image/png;base64," + base64;
+                img.style.display = "inline-block";
+            } else {
+                alert("Erro ao gerar a etiqueta no servidor.");
+            }
+        } catch (error) {
+            alert("Erro de conexão com o servidor Java.");
+        }
+    }
+</script>
+</body>
+</html>
